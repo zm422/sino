@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>股票研究報告產生器</title>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0f0f;
+    --paper: #faf8f3;
+    --cream: #f2ede3;
+    --accent: #003087;
+    --accent-light: #f0e8e5;
+    --gold: #E2001A;
+    --muted: #6b6560;
+    --border: #d8d0c4;
+    --green: #1a6b3c;
+    --red: #c8381a;
+    --section-bg: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  .screen-ui {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+
+  .masthead {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .masthead-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .masthead h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+
+  .masthead h1 span { color: var(--accent); }
+
+  .masthead-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+    font-weight: 300;
+  }
+
+  .input-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 32px 36px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 4px 4px 0 var(--border);
+  }
+
+  .apikey-row {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .apikey-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+  }
+
+  .apikey-wrap input {
+    flex: 1;
+    padding: 10px 36px 10px 12px;
+    border: 1px solid var(--border);
+    background: var(--paper);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink);
+    border-radius: 1px;
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 1px;
+  }
+
+  .apikey-wrap input:focus { border-color: var(--gold); }
+
+  .apikey-toggle {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 2px;
+    display: flex;
+    align-items: center;
+  }
+
+  .apikey-toggle:hover { color: var(--ink); }
+
+  .apikey-status {
+    font-size: 10px;
+    margin-top: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--muted);
+  }
+
+  .apikey-status.ok { color: var(--green); }
+  .apikey-status.warn { color: var(--gold); }
+
+  .input-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    margin-bottom: 16px;
+  }
+
+  .field-group { flex: 1; }
+
+  .field-group label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .field-group input, .field-group select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    background: var(--paper);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    border-radius: 1px;
+    outline: none;
+    transition: border-color 0.2s;
+    text-transform: uppercase;
+  }
+
+  .field-group input:focus, .field-group select:focus { border-color: var(--accent); }
+  .field-group.narrow { flex: 0 0 120px; }
+
+  .btn-generate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: var(--ink);
+    color: white;
+    border: none;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 1px;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .btn-generate:hover { background: var(--accent); }
+  .btn-generate:active { transform: scale(0.99); }
+  .btn-generate:disabled { background: var(--muted); cursor: not-allowed; }
+  .btn-generate svg { width: 16px; height: 16px; }
+
+  .disclaimer {
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 10px;
+    line-height: 1.6;
+  }
+
+  .progress-wrap {
+    display: none;
+    width: 100%;
+    max-width: 600px;
+    margin-top: 24px;
+    background: white;
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+  }
+
+  .progress-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .progress-bar-bg {
+    height: 3px;
+    background: var(--cream);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+
+  .progress-step {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  #report-area {
+    display: none;
+    width: 100%;
+    max-width: 860px;
+    margin-top: 32px;
+  }
+
+  .report-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 0 4px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .report-toolbar span {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .toolbar-btns {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-pdf {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 1px;
+    transition: opacity 0.2s;
+  }
+
+  .btn-pdf:hover { opacity: 0.85; }
+  .btn-pdf svg { width: 14px; height: 14px; }
+
+  .report-doc {
+    background: white;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.08);
+  }
+
+  .report-header {
+    padding: 44px 52px 32px;
+    border-bottom: 3px solid var(--ink);
+    position: relative;
+  }
+
+  .report-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .report-pub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .report-date {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+
+  .report-ticker {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .report-company {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+
+  .report-tagline {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 300;
+    max-width: 560px;
+    line-height: 1.6;
+    border-left: 2px solid var(--accent);
+    padding-left: 12px;
+  }
+
+  .report-meta-row {
+    display: flex;
+    gap: 32px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .report-meta-item label {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+
+  .report-meta-item .val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .report-meta-item .val.up { color: var(--green); }
+  .report-meta-item .val.down { color: var(--red); }
+
+  .report-body { padding: 0 52px 52px; }
+
+  .report-section {
+    margin-top: 36px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+
+  .intro-text {
+    font-size: 13.5px;
+    line-height: 1.85;
+    color: #2a2520;
+    font-weight: 300;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-top: 4px;
+  }
+
+  .metric-card {
+    background: white;
+    padding: 16px 14px;
+  }
+
+  .metric-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .metric-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  .metric-value.up { color: var(--green); }
+  .metric-value.down { color: var(--red); }
+  .metric-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+  .quarterly-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+
+  .quarterly-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 12px;
+    text-align: right;
+    border-bottom: 2px solid var(--ink);
+    background: var(--paper);
+  }
+
+  .quarterly-table th:first-child { text-align: left; }
+
+  .quarterly-table td {
+    padding: 10px 12px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink);
+  }
+
+  .quarterly-table td:first-child {
+    text-align: left;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .quarterly-table tr:last-child td { border-bottom: none; }
+  .quarterly-table tr:nth-child(even) td { background: var(--paper); }
+  .td-up { color: var(--green) !important; font-weight: 500; }
+  .td-down { color: var(--red) !important; font-weight: 500; }
+
+  .news-item {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .news-item:last-child { border-bottom: none; }
+
+  .news-date {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .news-headline {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 5px;
+    line-height: 1.4;
+  }
+
+  .news-body {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  .news-tag {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: 1px;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .highlight-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .highlight-list li {
+    display: flex;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    font-weight: 300;
+    color: #2a2520;
+  }
+
+  .highlight-list li::before {
+    content: '▸';
+    color: var(--green);
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-size: 10px;
+  }
+
+  .risk-list li::before { color: var(--red) !important; }
+
+  .tv-container {
+    width: 100%;
+    height: 320px;
+    border: 1px solid var(--border);
+    background: var(--paper);
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .tv-container iframe { width: 100%; height: 100%; border: none; }
+
+  .report-footer {
+    margin: 40px 52px 0;
+    padding: 16px 0;
+    border-top: 2px solid var(--ink);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .footer-disclaimer {
+    font-size: 9px;
+    color: var(--muted);
+    max-width: 400px;
+    text-align: right;
+    line-height: 1.5;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media print {
+    @page { size: A4; margin: 15mm 14mm; }
+    body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .screen-ui > *:not(#report-area) { display: none !important; }
+    .report-toolbar { display: none !important; }
+    #report-area { display: block !important; margin: 0; }
+    .report-doc { box-shadow: none !important; border: none !important; }
+    .report-section { page-break-inside: avoid; }
+    .tv-container { height: 260px; }
+    .metrics-grid { page-break-inside: avoid; }
+    .quarterly-table { page-break-inside: avoid; }
+    .report-header { padding: 32px 40px 24px !important; }
+    .report-body { padding: 0 40px 40px !important; }
+    .report-footer { margin: 32px 40px 0 !important; }
+  }
+
+  @media (max-width: 640px) {
+    .report-header { padding: 24px 20px 20px; }
+    .report-body { padding: 0 20px 32px; }
+    .report-footer { margin: 24px 20px 0; }
+    .report-company { font-size: 24px; }
+    .two-col { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .report-meta-row { gap: 16px; }
+    .quarterly-table { font-size: 10px; }
+    .quarterly-table th, .quarterly-table td { padding: 6px 6px; }
+    .input-card { padding: 20px 18px; }
+  }
+
+  .error-box {
+    background: #fff5f5;
+    border: 1px solid #fcc;
+    padding: 16px 20px;
+    border-radius: 2px;
+    font-size: 13px;
+    color: var(--red);
+    margin-top: 16px;
+    display: none;
+  }
+
+  .bank-logo {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    line-height: 1;
+  }
+
+  .bank-logo-blue {
+    background: #003087;
+    color: white;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 5px 10px;
+    letter-spacing: 1px;
+  }
+
+  .bank-logo-red {
+    background: #E2001A;
+    color: white;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 5px 10px;
+    letter-spacing: 1px;
+  }
+
+  .print-tip {
+    display: none;
+    font-size: 11px;
+    color: #6b6560;
+    margin-top: 8px;
+    padding: 10px 14px;
+    background: #faf8f3;
+    border: 1px solid #d8d0c4;
+    border-radius: 2px;
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="screen-ui">
+  <!-- Masthead -->
+  <div class="masthead">
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px;flex-wrap:wrap;">
+      <div class="bank-logo">
+        <div class="bank-logo-blue">永豐</div>
+        <div class="bank-logo-red">銀行</div>
+      </div>
+      <div style="width:1px;height:28px;background:#d8d0c4;"></div>
+      <h1 style="font-size:24px;font-family:'Playfair Display',serif;font-weight:700;color:#0f0f0f;margin:0;">個股研究報告產生器</h1>
+    </div>
+    <div style="font-size:11px;color:#6b6560;font-family:'IBM Plex Sans',sans-serif;font-weight:300;">財務行銷部 · 內部工具</div>
+  </div>
+
+  <!-- Input Card -->
+  <div class="input-card">
+    <div class="apikey-row">
+      <div class="field-group">
+        <label>Google Gemini API Key</label>
+        <div class="apikey-wrap">
+          <input type="password" id="api-key-input" placeholder="AIzaSy..." oninput="onApiKeyChange()" autocomplete="off" />
+          <button class="apikey-toggle" onclick="toggleApiKeyVisibility()" title="顯示/隱藏">
+            <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="apikey-status" id="apikey-status">請輸入您的 Google Gemini API Key 以啟用報告生成</div>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div class="field-group">
+        <label>股票代碼 Ticker</label>
+        <input type="text" id="ticker-input" placeholder="NVDA / 7203.T" maxlength="12" />
+      </div>
+      <div class="field-group narrow">
+        <label>市場 Market</label>
+        <select id="market-select">
+          <option value="US">美股 US</option>
+          <option value="JP">日股 JP</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn-generate" id="gen-btn" onclick="generateReport()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      生成研究報告
+    </button>
+    <div class="error-box" id="error-box"></div>
+    <div class="disclaimer">本報告由 AI 生成，僅供參考，不構成投資建議。數據可能存在誤差，請以官方財報為準。</div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-label">正在生成報告</div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar"></div></div>
+    <div class="progress-step" id="progress-step">正在分析標的...</div>
+  </div>
+
+  <!-- Report Area -->
+  <div id="report-area">
+    <div class="report-toolbar">
+      <span id="report-meta-label">—</span>
+      <div class="toolbar-btns">
+        <button class="btn-pdf" onclick="printReport()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4"/></svg>
+          匯出 PDF
+        </button>
+        <button class="btn-pdf" id="btn-ppt" onclick="generatePPT()" style="background:#E2001A;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          生成 PPT
+        </button>
+      </div>
+    </div>
+    <div class="print-tip" id="print-tip">
+      💡 列印設定建議：<br>
+      ・目標選擇「另存為 PDF」<br>
+      ・<strong>取消勾選「頁首和頁尾」</strong>（即可移除網址、日期等邊框文字）<br>
+      ・邊界選「無」或「最小」效果更佳
+    </div>
+    <div class="report-doc" id="report-doc"></div>
+  </div>
+</div>
+
+<script>
+function getApiKey() {
+  return document.getElementById('api-key-input').value.trim();
+}
+
+function onApiKeyChange() {
+  const key = getApiKey();
+  const status = document.getElementById('apikey-status');
+  if (!key) {
+    status.className = 'apikey-status';
+    status.textContent = '請輸入您的 Google Gemini API Key 以啟用報告生成';
+  } else if (key.startsWith('AIza') && key.length > 20) {
+    status.className = 'apikey-status ok';
+    status.textContent = '✓ API Key 格式正確，可以開始生成';
+    localStorage.setItem('gemini_api_key', key);
+  } else {
+    status.className = 'apikey-status warn';
+    status.textContent = '⚠ 格式看起來不太對，Gemini Key 一般以 AIza 開頭';
+  }
+}
+
+function toggleApiKeyVisibility() {
+  const input = document.getElementById('api-key-input');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('gemini_api_key');
+  if (saved) {
+    document.getElementById('api-key-input').value = saved;
+    onApiKeyChange();
+  }
+  document.getElementById('ticker-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') generateReport();
+  });
+});
+
+function setProgress(pct, label) {
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-step').textContent = label;
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-box');
+  el.style.display = 'block';
+  el.textContent = '⚠ ' + msg;
+}
+
+function hideError() {
+  document.getElementById('error-box').style.display = 'none';
+}
+
+function getTVSymbol(ticker, market) {
+  if (market === 'JP') {
+    const code = ticker.replace('.T','').replace('.t','');
+    return `TSE:${code}`;
+  }
+  return ticker.toUpperCase();
+}
+
+async function callGemini(prompt, systemPrompt) {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error('請先填入 Google Gemini API Key');
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: systemPrompt + '\n\n' + prompt }] }],
+      tools: [{ googleSearch: {} }]
+    })
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    if (res.status === 400 && errText.includes('API key not valid')) {
+      throw new Error('API Key 無效，請確認金鑰是否正確');
+    }
+    throw new Error(`API 錯誤 ${res.status}：${errText.slice(0, 120)}`);
+  }
+
+  const responseData = await res.json();
+  const parts = responseData?.candidates?.[0]?.content?.parts || [];
+  return parts.filter(p => p.text).map(p => p.text).join('\n');
+}
+
+async function generateReport() {
+  hideError();
+  const apiKey = getApiKey();
+  if (!apiKey) { showError('請先填入 Google Gemini API Key'); return; }
+  if (!apiKey.startsWith('AIza')) { showError('API Key 格式不正確，Gemini Key 一般以 AIzaSy 開頭'); return; }
+  const ticker = document.getElementById('ticker-input').value.trim().toUpperCase();
+  const market = document.getElementById('market-select').value;
+  if (!ticker) { showError('請輸入股票代碼'); return; }
+
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 生成中...';
+
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('report-area').style.display = 'none';
+
+  try {
+    setProgress(10, '搜尋公司基本資料...');
+
+    const marketLabel = market === 'US' ? '美股' : '日股';
+    const currency = market === 'US' ? 'USD' : 'JPY';
+    const today = new Date();
+    const oneMonthAgo = new Date(today);
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    const todayStr = today.toISOString().slice(0,10);
+    const oneMonthAgoStr = oneMonthAgo.toISOString().slice(0,10);
+
+    const systemPrompt = `你是一位專業的股票研究分析師，專注於${marketLabel}市場。
+今天日期是 ${todayStr}。
+你必須嚴格回傳 JSON 格式，不得包含任何 Markdown 代碼塊標記（不要有 \`\`\`json 或 \`\`\`），直接輸出純 JSON。
+所有數字請使用合理的估計值，如果搜索結果有具體數據請優先使用。
+數字格式：金額使用 ${currency}，百分比保留一位小數。`;
+
+    const prompt = `請針對 ${ticker}（${marketLabel}）生成一份完整的股票研究報告，以 JSON 格式回傳。
+
+今天日期：${todayStr}
+
+請使用 Google Search 搜尋最新資料，務必搜尋以下內容：
+1. "${ticker} company overview business description"
+2. "${ticker} financial results revenue earnings quarterly 2024 2025"
+3. "${ticker} news ${todayStr}"
+4. "${ticker} upcoming events conference earnings date 2025"
+5. "${ticker} analyst target price consensus rating"
+
+【新聞重要規則】
+- news 陣列只收錄 ${oneMonthAgoStr} 至 ${todayStr} 之間發生的新聞
+- 除了過去新聞，必須主動搜尋並納入「即將發生的重要事件」，tag 填 "即將事件"
+- 每則新聞 summary 必須說明事件對股價或公司的實際影響或重要性
+
+【分析師共識規則】
+- analystConsensus 必須附上資料來源，來源限定：Yahoo Finance、Bloomberg、Seeking Alpha、MarketBeat、TipRanks、Reuters
+
+JSON 結構如下（請完整填寫所有欄位）：
+
+{
+  "companyName": "公司全名",
+  "ticker": "${ticker}",
+  "market": "${marketLabel}",
+  "currency": "${currency}",
+  "sector": "所屬產業",
+  "exchange": "交易所名稱",
+  "currentPrice": "當前股價（含幣別）",
+  "marketCap": "市值（如 2.1T USD）",
+  "intro": "公司簡介，150-200字",
+  "tagline": "一句話描述公司定位，30字以內",
+  "keyMetrics": {
+    "pe": "本益比",
+    "eps_ttm": "過去12個月EPS",
+    "roe": "股東權益報酬率（%）",
+    "fcf_yield": "自由現金流殖利率（%）",
+    "dividend_yield": "股息殖利率（%），無配息填 N/A",
+    "52w_high": "52週高點",
+    "52w_low": "52週低點",
+    "beta": "Beta值"
+  },
+  "quarterly": [
+    { "quarter": "最新一季", "revenue": "", "revenue_yoy": "", "gross_margin": "", "operating_margin": "", "eps": "", "capex": "", "fcf": "" },
+    { "quarter": "前一季", "revenue": "", "revenue_yoy": "", "gross_margin": "", "operating_margin": "", "eps": "", "capex": "", "fcf": "" },
+    { "quarter": "前兩季", "revenue": "", "revenue_yoy": "", "gross_margin": "", "operating_margin": "", "eps": "", "capex": "", "fcf": "" },
+    { "quarter": "前三季", "revenue": "", "revenue_yoy": "", "gross_margin": "", "operating_margin": "", "eps": "", "capex": "", "fcf": "" }
+  ],
+  "news": [
+    { "date": "YYYY-MM-DD", "tag": "財報/業務/產品/總經/即將事件", "headline": "", "summary": "", "source": "" },
+    { "date": "", "tag": "", "headline": "", "summary": "", "source": "" },
+    { "date": "", "tag": "", "headline": "", "summary": "", "source": "" },
+    { "date": "", "tag": "", "headline": "", "summary": "", "source": "" },
+    { "date": "", "tag": "", "headline": "", "summary": "", "source": "" },
+    { "date": "", "tag": "", "headline": "", "summary": "", "source": "" }
+  ],
+  "highlights": ["投資亮點1", "投資亮點2", "投資亮點3", "投資亮點4"],
+  "risks": ["風險因素1", "風險因素2", "風險因素3"],
+  "analystConsensus": {
+    "rating": "買入/中性/賣出",
+    "targetPrice": "目標股價（含幣別）",
+    "updownside": "上行/下行空間（如 +18%）",
+    "source": "資料來源",
+    "numAnalysts": "參與評級的分析師人數"
+  }
+}`;
+
+    setProgress(30, '正在搜尋財務資料...');
+    const raw = await callGemini(prompt, systemPrompt);
+
+    setProgress(75, '解析報告數據...');
+
+    let data;
+    try {
+      const cleaned = raw.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+      data = JSON.parse(cleaned);
+    } catch(e) {
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) data = JSON.parse(match[0]);
+      else throw new Error('無法解析 AI 回應，請重試');
+    }
+
+    setProgress(90, '建立報告頁面...');
+    window._reportData = data;
+    renderReport(data, ticker, market);
+
+    setProgress(100, '完成！');
+    setTimeout(() => {
+      document.getElementById('progress-wrap').style.display = 'none';
+      document.getElementById('report-area').style.display = 'block';
+    }, 400);
+
+  } catch(err) {
+    showError(err.message || '生成失敗，請稍後重試');
+    document.getElementById('progress-wrap').style.display = 'none';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> 生成研究報告`;
+  }
+}
+
+function colorClass(val) {
+  if (!val) return '';
+  const str = String(val);
+  if (str.startsWith('+') || str.startsWith('▲')) return 'td-up';
+  if (str.startsWith('-') || str.startsWith('▼')) return 'td-down';
+  return '';
+}
+
+function renderReport(d, ticker, market) {
+  const tvSymbol = getTVSymbol(ticker, market);
+  const today = new Date().toLocaleDateString('zh-TW', { year:'numeric', month:'long', day:'numeric'});
+
+  document.getElementById('report-meta-label').textContent =
+    `${d.companyName || ticker} · ${d.market} · ${today}`;
+
+  const km = d.keyMetrics || {};
+  const ac = d.analystConsensus || {};
+  const quarterly = d.quarterly || [];
+  const news = d.news || [];
+  const highlights = d.highlights || [];
+  const risks = d.risks || [];
+
+  document.getElementById('report-doc').innerHTML = `
+    <div class="report-header">
+      <div class="report-header-top">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="bank-logo">
+            <div class="bank-logo-blue" style="font-size:11px;padding:3px 8px;">永豐</div>
+            <div class="bank-logo-red" style="font-size:11px;padding:3px 8px;">銀行</div>
+          </div>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#6b6560;letter-spacing:2px;text-transform:uppercase;">個股研究報告 · 財務行銷部</span>
+        </div>
+        <div class="report-date">${today}</div>
+      </div>
+      <div class="report-ticker">${d.ticker || ticker} · ${d.exchange || d.market} · ${d.sector || ''}</div>
+      <div class="report-company">${d.companyName || ticker}</div>
+      <div class="report-tagline">${d.tagline || ''}</div>
+      <div class="report-meta-row">
+        <div class="report-meta-item">
+          <label>當前股價</label>
+          <div class="val">${d.currentPrice || '—'}</div>
+        </div>
+        <div class="report-meta-item">
+          <label>市值</label>
+          <div class="val">${d.marketCap || '—'}</div>
+        </div>
+        <div class="report-meta-item">
+          <label>本益比 P/E</label>
+          <div class="val">${km.pe || '—'}</div>
+        </div>
+        <div class="report-meta-item">
+          <label>EPS (TTM)</label>
+          <div class="val">${km.eps_ttm || '—'}</div>
+        </div>
+        <div class="report-meta-item">
+          <label>分析師評級</label>
+          <div class="val ${ac.rating === '買入' ? 'up' : ac.rating === '賣出' ? 'down' : ''}">${ac.rating || '—'}</div>
+          ${ac.numAnalysts ? `<div style="font-size:9px;color:var(--muted);margin-top:2px;">${ac.numAnalysts} 位分析師</div>` : ''}
+        </div>
+        <div class="report-meta-item">
+          <label>目標股價</label>
+          <div class="val">${ac.targetPrice || '—'} <span style="font-size:11px;color:var(--green)">${ac.updownside || ''}</span></div>
+          ${ac.source ? `<div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;">來源：${ac.source}</div>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="report-body">
+
+      <div class="report-section">
+        <div class="section-label">01 — Company Overview</div>
+        <div class="two-col">
+          <div>
+            <div class="section-title">公司簡介</div>
+            <p class="intro-text">${d.intro || '—'}</p>
+          </div>
+          <div>
+            <div class="section-title" style="font-size:15px;margin-bottom:12px;">關鍵指標 Key Metrics</div>
+            <div class="metrics-grid" style="grid-template-columns:1fr 1fr;">
+              <div class="metric-card"><div class="metric-label">ROE</div><div class="metric-value">${km.roe || '—'}</div></div>
+              <div class="metric-card"><div class="metric-label">FCF Yield</div><div class="metric-value">${km.fcf_yield || '—'}</div></div>
+              <div class="metric-card"><div class="metric-label">股息殖利率</div><div class="metric-value">${km.dividend_yield || '—'}</div></div>
+              <div class="metric-card"><div class="metric-label">Beta</div><div class="metric-value">${km.beta || '—'}</div></div>
+              <div class="metric-card"><div class="metric-label">52W High</div><div class="metric-value" style="font-size:14px;">${km['52w_high'] || '—'}</div></div>
+              <div class="metric-card"><div class="metric-label">52W Low</div><div class="metric-value" style="font-size:14px;">${km['52w_low'] || '—'}</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <div class="section-label">02 — Price Chart (1Y)</div>
+        <div class="section-title">近一年股價走勢</div>
+        <div class="tv-container">
+          <iframe
+            src="https://www.tradingview.com/widgetembed/?symbol=${encodeURIComponent(tvSymbol)}&interval=W&hidesidetoolbar=1&hidetoptoolbar=0&symboledit=0&saveimage=0&toolbarbg=f1f3f6&studies=[]&theme=light&style=1&timezone=Asia%2FTokyo&withdateranges=1&range=12M&showpopupbutton=0&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=zh_TW&utm_source=localhost"
+            allowtransparency="true"
+            frameborder="0"
+            scrolling="no"
+          ></iframe>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <div class="section-label">03 — Financial Performance</div>
+        <div class="section-title">近四季財務數據</div>
+        <div style="overflow-x:auto;">
+          <table class="quarterly-table">
+            <thead>
+              <tr>
+                <th>季度</th>
+                <th>營收 Revenue</th>
+                <th>YoY ↑↓</th>
+                <th>毛利率 GM%</th>
+                <th>營業利潤率 OP%</th>
+                <th>EPS</th>
+                <th>資本支出 CapEx</th>
+                <th>自由現金流 FCF</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${quarterly.map(q => `
+              <tr>
+                <td>${q.quarter}</td>
+                <td>${q.revenue || '—'}</td>
+                <td class="${colorClass(q.revenue_yoy)}">${q.revenue_yoy || '—'}</td>
+                <td>${q.gross_margin || '—'}</td>
+                <td>${q.operating_margin || '—'}</td>
+                <td>${q.eps || '—'}</td>
+                <td>${q.capex || '—'}</td>
+                <td>${q.fcf || '—'}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <div class="section-label">04 — Recent News & Catalysts</div>
+        <div class="section-title">近期重要消息</div>
+        ${news.map(n => `
+        <div class="news-item">
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
+            <span class="news-date">${n.date || ''}</span>
+            <span class="news-tag" style="${(n.tag||'').includes('即將') ? 'background:#e8f4e8;color:#1a6b3c;' : ''}">${n.tag || ''}</span>
+            ${n.source ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#6b6560;margin-left:auto;">📎 ${n.source}</span>` : ''}
+          </div>
+          <div class="news-headline">${n.headline || ''}</div>
+          <div class="news-body">${n.summary || ''}</div>
+        </div>`).join('')}
+      </div>
+
+      <div class="report-section">
+        <div class="section-label">05 — Investment Thesis</div>
+        <div class="two-col">
+          <div>
+            <div class="section-title" style="color:var(--green);font-size:17px;">投資亮點 Highlights</div>
+            <ul class="highlight-list">
+              ${highlights.map(h => `<li>${h}</li>`).join('')}
+            </ul>
+          </div>
+          <div>
+            <div class="section-title" style="color:var(--red);font-size:17px;">主要風險 Key Risks</div>
+            <ul class="highlight-list risk-list">
+              ${risks.map(r => `<li>${r}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="report-footer">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="bank-logo">
+          <div class="bank-logo-blue" style="font-size:10px;padding:2px 6px;">永豐</div>
+          <div class="bank-logo-red" style="font-size:10px;padding:2px 6px;">銀行</div>
+        </div>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#6b6560;">財務行銷部</span>
+      </div>
+      <div class="footer-disclaimer">
+        本報告由 AI 自動生成，內容僅供參考，不構成任何投資建議。<br>
+        數據來源：公開資料。投資人應自行研判，後果自負。
+      </div>
+    </div>
+  `;
+}
+
+function generatePPT() {
+  if (!window._reportData) { alert('請先生成報告再匯出 PPT'); return; }
+  const d = window._reportData;
+  const btn = document.getElementById('btn-ppt');
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+
+  try {
+    const pres = new PptxGenJS();
+    pres.layout = 'LAYOUT_16x9';
+    pres.title = d.companyName || d.ticker;
+
+    const C = {
+      ink:    '0f0f0f',
+      paper:  'faf8f3',
+      cream:  'f2ede3',
+      card:   'f7f5f0',
+      accent: '003087',
+      gold:   'E2001A',
+      muted:  '6b6560',
+      border: 'd8d0c4',
+      green:  '1a6b3c',
+      red:    'c8381a',
+      white:  'FFFFFF',
+    };
+
+    const addHeader = (slide, sectionNum, sectionEn, titleZh) => {
+      slide.background = { color: C.paper };
+      slide.addShape(pres.shapes.RECTANGLE, { x:0, y:0, w:10, h:0.055, fill:{color:C.ink}, line:{color:C.ink} });
+      slide.addText(sectionNum + ' — ' + sectionEn, {
+        x:0.5, y:0.13, w:7, h:0.22,
+        fontSize:7.5, color:C.accent, bold:true, charSpacing:3.5, fontFace:'Georgia', margin:0
+      });
+      slide.addText(titleZh, {
+        x:0.5, y:0.33, w:9, h:0.52,
+        fontSize:20, bold:true, color:C.ink, fontFace:'Georgia', margin:0
+      });
+      slide.addShape(pres.shapes.LINE, { x:0.5, y:0.88, w:9, h:0, line:{color:C.border, width:0.75} });
+    };
+
+    const addFooter = (slide) => {
+      slide.addShape(pres.shapes.LINE, { x:0.5, y:5.38, w:9, h:0, line:{color:C.ink, width:0.75} });
+      slide.addText(d.ticker + ' · ' + (d.market||'') + ' · ' + (d.exchange||''), {
+        x:0.5, y:5.42, w:5, h:0.18, fontSize:7.5, color:C.muted, fontFace:'Calibri', margin:0
+      });
+      slide.addText('永豐銀行 財務行銷部 · ' + new Date().toLocaleDateString('zh-TW'), {
+        x:5, y:5.42, w:4.5, h:0.18, fontSize:7.5, color:C.muted, align:'right', fontFace:'Calibri', margin:0
+      });
+    };
+
+    const km = d.keyMetrics || {};
+    const ac = d.analystConsensus || {};
+
+    // SLIDE 1 - Cover
+    const s1 = pres.addSlide();
+    s1.background = { color: C.paper };
+    s1.addShape(pres.shapes.RECTANGLE, { x:0, y:0, w:10, h:0.09, fill:{color:C.ink}, line:{color:C.ink} });
+    s1.addText('財務行銷部 · 個股研究報告', {
+      x:0.55, y:0.18, w:9, h:0.26,
+      fontSize:8, color:C.accent, bold:true, charSpacing:5, fontFace:'Georgia', margin:0
+    });
+    s1.addShape(pres.shapes.LINE, { x:0.55, y:0.48, w:8.9, h:0, line:{color:C.border, width:0.5} });
+    s1.addText(d.ticker || '', {
+      x:0.5, y:0.52, w:7, h:1.35,
+      fontSize:90, bold:true, color:C.ink, fontFace:'Georgia', margin:0
+    });
+    s1.addShape(pres.shapes.RECTANGLE, { x:9.35, y:0.52, w:0.12, h:1.3, fill:{color:C.accent}, line:{color:C.accent} });
+    s1.addText(d.companyName || '', {
+      x:0.55, y:1.93, w:9, h:0.45,
+      fontSize:16, color:'3a3530', fontFace:'Georgia', italic:true, margin:0
+    });
+    if (d.tagline) {
+      s1.addShape(pres.shapes.RECTANGLE, { x:0.55, y:2.5, w:0.055, h:0.42, fill:{color:C.accent}, line:{color:C.accent} });
+      s1.addText(d.tagline, { x:0.72, y:2.5, w:8.5, h:0.42, fontSize:12, color:C.muted, italic:true, fontFace:'Calibri', margin:0 });
+    }
+    s1.addShape(pres.shapes.LINE, { x:0.55, y:3.1, w:8.9, h:0, line:{color:C.ink, width:1.5} });
+    const coverMetrics = [
+      { label:'當前股價', val: d.currentPrice||'—' },
+      { label:'市值', val: d.marketCap||'—' },
+      { label:'本益比 P/E', val: km.pe||'—' },
+      { label:'EPS (TTM)', val: km.eps_ttm||'—' },
+    ];
+    coverMetrics.forEach((m, i) => {
+      const x = 0.55 + i * 2.24;
+      if (i > 0) s1.addShape(pres.shapes.LINE, { x, y:3.18, w:0, h:0.85, line:{color:C.border, width:0.5} });
+      s1.addText(m.label, { x:x+0.12, y:3.18, w:2.0, h:0.22, fontSize:7.5, color:C.muted, charSpacing:1.5, margin:0 });
+      s1.addText(m.val, { x:x+0.12, y:3.4, w:2.0, h:0.55, fontSize:18, bold:true, color:C.ink, fontFace:'Calibri', margin:0 });
+    });
+    s1.addShape(pres.shapes.LINE, { x:0.55, y:4.05, w:8.9, h:0, line:{color:C.ink, width:1.5} });
+    s1.addText((d.sector||'') + '　|　' + (d.exchange||'') + '　|　' + new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'}), {
+      x:0.55, y:4.12, w:9, h:0.28, fontSize:9, color:C.muted, fontFace:'Calibri', margin:0
+    });
+    s1.addShape(pres.shapes.LINE, { x:0.55, y:5.38, w:8.9, h:0, line:{color:C.ink, width:0.75} });
+    s1.addText('永豐銀行 · 財務行銷部', { x:0.55, y:5.42, w:9, h:0.18, fontSize:7.5, color:C.muted, align:'right', fontFace:'Calibri', margin:0 });
+
+    // SLIDE 2 - Overview + Metrics
+    const s2 = pres.addSlide();
+    addHeader(s2, '01', 'COMPANY OVERVIEW', '個股簡介與關鍵指標');
+    s2.addShape(pres.shapes.RECTANGLE, { x:0.45, y:1.0, w:5.5, h:4.22, fill:{color:C.cream}, line:{color:C.border, width:0.6} });
+    s2.addText(d.intro || '—', {
+      x:0.62, y:1.12, w:5.18, h:4.0,
+      fontSize:10.5, color:'2a2520', lineSpacingMultiple:1.55, valign:'top', wrap:true, fontFace:'Calibri', margin:0
+    });
+    const metrics2 = [
+      { label:'ROE', val: km.roe||'—' }, { label:'FCF Yield', val: km.fcf_yield||'—' },
+      { label:'股息殖利率', val: km.dividend_yield||'—' }, { label:'Beta', val: km.beta||'—' },
+      { label:'52W High', val: km['52w_high']||'—' }, { label:'52W Low', val: km['52w_low']||'—' },
+    ];
+    metrics2.forEach((m, i) => {
+      const col = i % 2, row = Math.floor(i / 2);
+      const mx = 6.2 + col * 1.95, my = 1.0 + row * 1.42;
+      s2.addShape(pres.shapes.RECTANGLE, { x:mx, y:my, w:1.8, h:1.3, fill:{color:C.white}, line:{color:C.border, width:0.6} });
+      s2.addShape(pres.shapes.RECTANGLE, { x:mx, y:my, w:1.8, h:0.06, fill:{color:C.gold}, line:{color:C.gold} });
+      s2.addText(m.label, { x:mx+0.1, y:my+0.12, w:1.6, h:0.22, fontSize:7.5, color:C.muted, charSpacing:1, margin:0 });
+      s2.addText(m.val, { x:mx+0.1, y:my+0.38, w:1.6, h:0.62, fontSize:17, bold:true, color:C.ink, fontFace:'Calibri', margin:0 });
+    });
+    addFooter(s2);
+
+    // SLIDE 3 - Chart
+    const s3 = pres.addSlide();
+    addHeader(s3, '02', 'PRICE CHART (1Y)', '近一年股價走勢');
+    s3.addShape(pres.shapes.RECTANGLE, { x:0.45, y:1.0, w:9.1, h:4.22, fill:{color:C.cream}, line:{color:C.border, width:0.8} });
+    s3.addText('[ 請截取 TradingView 股價圖後貼入此處 ]', { x:1, y:2.35, w:8, h:0.5, fontSize:14, color:C.border, align:'center', italic:true, fontFace:'Calibri', margin:0 });
+    const tvSym = d.market === '日股' ? 'TSE:' + (d.ticker||'').replace('.T','') : (d.ticker||'');
+    const tvUrl2 = `https://www.tradingview.com/chart/?symbol=${tvSym}&interval=W`;
+    s3.addText('TradingView 連結（點擊開啟）', { x:1, y:2.98, w:8, h:0.3, fontSize:9.5, color:'1a5276', align:'center', fontFace:'Calibri', margin:0, hyperlink:{ url: tvUrl2 } });
+    s3.addText(`Symbol：${tvSym}　|　Interval：Weekly　|　Range：12M`, { x:1, y:3.35, w:8, h:0.26, fontSize:8.5, color:C.muted, align:'center', fontFace:'Calibri', margin:0 });
+    addFooter(s3);
+
+    // SLIDE 4 - Financials
+    const s4 = pres.addSlide();
+    addHeader(s4, '03', 'FINANCIAL PERFORMANCE', '近四季財務數據');
+    const quarterly = d.quarterly || [];
+    if (quarterly.length) {
+      const hdrStyle = { bold:true, fill:{color:C.ink}, color:C.white, fontSize:8.5, align:'center' };
+      const hdrs = ['季度','營收','YoY ↑↓','毛利率','營業利潤率','EPS','資本支出','自由現金流'];
+      const hdrRow = hdrs.map(h => ({ text:h, options:{...hdrStyle} }));
+      const rows = [hdrRow];
+      quarterly.forEach((q, ri) => {
+        const bg = ri % 2 === 0 ? C.white : C.cream;
+        const yoyColor = (q.revenue_yoy||'').startsWith('+') ? C.green : (q.revenue_yoy||'').startsWith('-') ? C.red : C.ink;
+        rows.push([
+          { text: q.quarter||'', options:{ fill:{color:bg}, bold:true, fontSize:9, fontFace:'Calibri' }},
+          { text: q.revenue||'—', options:{ fill:{color:bg}, align:'right', fontSize:9 }},
+          { text: q.revenue_yoy||'—', options:{ fill:{color:bg}, align:'center', fontSize:9, bold:true, color:yoyColor }},
+          { text: q.gross_margin||'—', options:{ fill:{color:bg}, align:'center', fontSize:9 }},
+          { text: q.operating_margin||'—', options:{ fill:{color:bg}, align:'center', fontSize:9 }},
+          { text: q.eps||'—', options:{ fill:{color:bg}, align:'center', fontSize:9 }},
+          { text: q.capex||'—', options:{ fill:{color:bg}, align:'right', fontSize:9 }},
+          { text: q.fcf||'—', options:{ fill:{color:bg}, align:'right', fontSize:9 }},
+        ]);
+      });
+      s4.addTable(rows, { x:0.45, y:1.05, w:9.1, colW:[1.35,1.15,0.88,1.0,1.2,0.88,1.1,1.54], border:{pt:0.5,color:C.border}, rowH:0.7 });
+    }
+    addFooter(s4);
+
+    // SLIDE 5 - News
+    const s5 = pres.addSlide();
+    addHeader(s5, '04', 'RECENT NEWS & CATALYSTS', '近期重要消息');
+    const news = (d.news || []).slice(0, 5);
+    news.forEach((n, i) => {
+      const ny = 1.02 + i * 0.86;
+      const bg = i % 2 === 0 ? C.white : C.cream;
+      s5.addShape(pres.shapes.RECTANGLE, { x:0.45, y:ny, w:9.1, h:0.78, fill:{color:bg}, line:{color:C.border, width:0.4} });
+      s5.addShape(pres.shapes.RECTANGLE, { x:0.45, y:ny, w:0.07, h:0.78, fill:{color:C.accent}, line:{color:C.accent} });
+      s5.addShape(pres.shapes.RECTANGLE, { x:0.63, y:ny+0.08, w:0.72, h:0.21, fill:{color:'f0e8e5'}, line:{color:C.accent, width:0.3} });
+      s5.addText(n.tag||'', { x:0.64, y:ny+0.09, w:0.7, h:0.19, fontSize:7, color:C.accent, align:'center', bold:true, margin:0 });
+      s5.addText(n.date||'', { x:1.44, y:ny+0.08, w:1.5, h:0.2, fontSize:7.5, color:C.muted, margin:0 });
+      s5.addText(n.headline||'', { x:0.63, y:ny+0.31, w:8.8, h:0.24, fontSize:10.5, bold:true, color:C.ink, fontFace:'Calibri', margin:0 });
+      s5.addText(n.summary||'', { x:0.63, y:ny+0.54, w:8.8, h:0.2, fontSize:8.5, color:C.muted, fontFace:'Calibri', margin:0 });
+    });
+    addFooter(s5);
+
+    // SLIDE 6 - Thesis
+    const s6 = pres.addSlide();
+    addHeader(s6, '05', 'INVESTMENT THESIS', '投資亮點 vs 主要風險');
+    s6.addShape(pres.shapes.RECTANGLE, { x:0.45, y:1.0, w:4.52, h:4.22, fill:{color:'f4faf7'}, line:{color:C.green, width:0.8} });
+    s6.addShape(pres.shapes.RECTANGLE, { x:0.45, y:1.0, w:4.52, h:0.07, fill:{color:C.green}, line:{color:C.green} });
+    s6.addText('投資亮點  Highlights', { x:0.58, y:1.12, w:4.2, h:0.32, fontSize:11, bold:true, color:C.green, fontFace:'Georgia', margin:0 });
+    s6.addShape(pres.shapes.LINE, { x:0.58, y:1.47, w:4.2, h:0, line:{color:C.green, width:0.4} });
+    const hlItems = (d.highlights||[]).map((h, idx, arr) => ({
+      text: h, options:{ bullet:true, breakLine: idx < arr.length-1, fontSize:10, color:'1a2820', paraSpaceAfter:7, fontFace:'Calibri' }
+    }));
+    if (hlItems.length) s6.addText(hlItems, { x:0.58, y:1.55, w:4.2, h:3.55, valign:'top', margin:0 });
+    s6.addShape(pres.shapes.RECTANGLE, { x:5.08, y:1.0, w:4.52, h:4.22, fill:{color:'fdf5f5'}, line:{color:C.red, width:0.8} });
+    s6.addShape(pres.shapes.RECTANGLE, { x:5.08, y:1.0, w:4.52, h:0.07, fill:{color:C.red}, line:{color:C.red} });
+    s6.addText('主要風險  Key Risks', { x:5.22, y:1.12, w:4.2, h:0.32, fontSize:11, bold:true, color:C.red, fontFace:'Georgia', margin:0 });
+    s6.addShape(pres.shapes.LINE, { x:5.22, y:1.47, w:4.2, h:0, line:{color:C.red, width:0.4} });
+    const riskItems = (d.risks||[]).map((r, idx, arr) => ({
+      text: r, options:{ bullet:true, breakLine: idx < arr.length-1, fontSize:10, color:'28101a', paraSpaceAfter:7, fontFace:'Calibri' }
+    }));
+    if (riskItems.length) s6.addText(riskItems, { x:5.22, y:1.55, w:4.2, h:3.55, valign:'top', margin:0 });
+    addFooter(s6);
+
+    // SLIDE 7 - Consensus
+    const s7 = pres.addSlide();
+    s7.background = { color: C.paper };
+    s7.addShape(pres.shapes.RECTANGLE, { x:0, y:0, w:10, h:0.09, fill:{color:C.ink}, line:{color:C.ink} });
+    s7.addText('06 — ANALYST CONSENSUS · 永豐銀行財務行銷部', { x:0.55, y:0.18, w:9, h:0.26, fontSize:8, color:C.accent, bold:true, charSpacing:4, fontFace:'Georgia', margin:0 });
+    s7.addText('分析師共識', { x:0.55, y:0.44, w:9, h:0.65, fontSize:32, bold:true, color:C.ink, fontFace:'Georgia', margin:0 });
+    s7.addShape(pres.shapes.LINE, { x:0.55, y:1.12, w:8.9, h:0, line:{color:C.ink, width:1.5} });
+    const consensusCards = [
+      { label:'評級 Rating', val: ac.rating||'—', accent: ac.rating==='買入' ? C.green : ac.rating==='賣出' ? C.red : C.gold },
+      { label:'目標股價 Target Price', val: ac.targetPrice||'—', accent: C.gold },
+      { label:'上下行空間', val: ac.updownside||'—', accent: (ac.updownside||'').startsWith('+') ? C.green : C.red },
+    ];
+    consensusCards.forEach((c, i) => {
+      const cx = 0.55 + i * 3.05;
+      s7.addShape(pres.shapes.RECTANGLE, { x:cx, y:1.25, w:2.85, h:2.1, fill:{color:C.white}, line:{color:C.border, width:0.6} });
+      s7.addShape(pres.shapes.RECTANGLE, { x:cx, y:1.25, w:2.85, h:0.07, fill:{color:c.accent}, line:{color:c.accent} });
+      s7.addText(c.label, { x:cx+0.15, y:1.4, w:2.55, h:0.3, fontSize:8, color:C.muted, charSpacing:0.5, margin:0 });
+      s7.addText(c.val, { x:cx+0.15, y:1.75, w:2.55, h:1.0, fontSize:30, bold:true, color:C.ink, fontFace:'Calibri', margin:0 });
+    });
+    s7.addShape(pres.shapes.LINE, { x:0.55, y:3.5, w:8.9, h:0, line:{color:C.border, width:0.5} });
+    s7.addText('本報告由 AI 自動生成，內容僅供參考，不構成任何投資建議。數據來源：公開資料。投資人應自行研判，後果自負。', {
+      x:0.55, y:3.62, w:8.9, h:0.45, fontSize:8.5, color:C.muted, wrap:true, fontFace:'Calibri', lineSpacingMultiple:1.4, margin:0
+    });
+    s7.addText(d.ticker||'', { x:3, y:3.8, w:6.5, h:1.55, fontSize:100, bold:true, color:'ece8e0', fontFace:'Georgia', align:'right', margin:0 });
+    s7.addShape(pres.shapes.LINE, { x:0.55, y:5.38, w:8.9, h:0, line:{color:C.ink, width:0.75} });
+    s7.addText('永豐銀行 財務行銷部 · ' + new Date().toLocaleDateString('zh-TW'), { x:0.55, y:5.42, w:8.9, h:0.18, fontSize:7.5, color:C.muted, align:'right', fontFace:'Calibri', margin:0 });
+
+    pres.writeFile({ fileName: `${d.ticker}_Research_Report.pptx` });
+
+  } catch(e) {
+    alert('PPT 生成失敗：' + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> 生成 PPT`;
+  }
+}
+
+function printReport() {
+  const tip = document.getElementById('print-tip');
+  tip.style.display = 'block';
+  setTimeout(() => { window.print(); }, 300);
+  setTimeout(() => { tip.style.display = 'none'; }, 8000);
+}
+</script>
+</body>
+</html>
